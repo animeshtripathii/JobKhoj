@@ -1,0 +1,25 @@
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# Personal data / generated artifacts — regenerate via ingest_resume.py
+data/resume/*
+data/faiss_index/*
+
+# Local SQLite DB (replaced by Neon PostgreSQL in production)
+app_tracker.db
+
+# Keep the folder structure itself trackable even though contents are ignored
+!data/resume/.gitkeep
+!data/faiss_index/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# repo.zip (downloaded during setup — not needed in git)
+repo.zip
