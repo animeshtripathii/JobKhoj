@@ -1,0 +1,20 @@
+# ── Frontend Dockerfile ──────────────────────────────────────────────────────
+# Runs: Streamlit chat UI — talks to the backend container over HTTP.
+# ────────────────────────────────────────────────────────────────────────────
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Only the packages the frontend actually needs
+RUN pip install --no-cache-dir streamlit==1.64.0 requests==2.34.2 python-dotenv==1.2.2
+
+# Copy only frontend code (not the full backend)
+COPY frontend/ ./frontend/
+COPY .env.example .env.example
+
+EXPOSE 8501
+
+# Render injects $PORT at runtime — use shell form so the variable expands.
+# Falls back to 8501 for local docker run / docker compose.
+CMD sh -c "python -m streamlit run frontend/app.py --server.address 0.0.0.0 --server.port ${PORT:-8501} --server.headless true"
