@@ -1,0 +1,43 @@
+services:
+  # ── Backend: FastAPI + LangGraph agent + all MCP servers ──────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persist uploaded resumes and FAISS index across container restarts
+      - resume_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Backend takes ~60s on first start (MCP server handshakes + model load)
+      start_period: 90s
+    restart: unless-stopped
+
+  # ── Frontend: Streamlit chat UI ────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      # Override BACKEND_URL so the frontend container reaches the backend
+      # container by its Docker Compose service name, not localhost
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  # Named volume: survives `docker compose down`, deleted only with `docker compose down -v`
+  resume_data:
