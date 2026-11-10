@@ -1,0 +1,54 @@
+# render.yaml — Render Blueprint
+# Defines both services (backend + frontend) so you can deploy the entire
+# project from the Render dashboard with a single "New Blueprint" click.
+#
+# HOW TO USE:
+#  1. Push this repo to GitHub (public or private).
+#  2. Go to https://dashboard.render.com → New → Blueprint.
+#  3. Connect your GitHub repo — Render finds this file automatically.
+#  4. After services are created, set the secret env vars in Render dashboard:
+#       jobkhoj-backend  → GROQ_API_KEY, DATABASE_URL
+#       jobkhoj-frontend → BACKEND_URL  (copy from backend's service URL)
+#
+# ⚠️  IMPORTANT — set BACKEND_URL for the frontend:
+#     After the backend deploys, copy its URL (e.g. https://jobkhoj-backend.onrender.com)
+#     and paste it as the BACKEND_URL env var on the frontend service in the dashboard.
+#
+# ⚠️  RESUME PERSISTENCE:
+#     Render free-tier services have ephemeral disks — the uploaded resume and
+#     FAISS index are lost on each redeploy. Re-upload your resume via the UI
+#     sidebar after every deploy. Upgrade to a paid Render plan + add a Disk
+#     (mount path: /app/data) to make it permanent.
+
+services:
+
+  # ── Backend: FastAPI + LangGraph agent + all MCP servers ──────────────────
+  - type: web
+    name: jobkhoj-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Render health-checks this path before marking the service healthy.
+    # The backend takes ~60-90s to start (MCP handshakes + model load).
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # Set manually in Render dashboard (secret)
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard (secret)
+      - key: LANGSMITH_TRACING
+        value: "false"
+      - key: LANGSMITH_PROJECT
+        value: ai-job-search-copilot
+      # PORT is injected automatically by Render — do not set it here.
+
+  # ── Frontend: Streamlit chat UI ────────────────────────────────────────────
+  - type: web
+    name: jobkhoj-frontend
+    runtime: docker
+    dockerfilePath: ./Dockerfile.frontend
+    envVars:
+      - key: BACKEND_URL
+        sync: false          # Set manually: https://jobkhoj-backend.onrender.com
+      # PORT is injected automatically by Render — do not set it here.
